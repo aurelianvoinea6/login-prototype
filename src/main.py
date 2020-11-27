@@ -12,6 +12,7 @@ import jwt
 from utils import APIException, generate_sitemap, token_required
 from admin import setup_admin
 from models import db, User
+import datetime
 #from models import Person
 
 app = Flask(__name__)
@@ -48,16 +49,22 @@ def signup_user():
 
  return jsonify({'message': 'registered successfully'})
 
-# @app.route('/user', methods=['GET'])
-# def handle_hello():
+@app.route('/login', methods=['GET', 'POST'])  
+def login_user(): 
+ 
+  auth = request.authorization   
 
-#     response_body = {
-#         "msg": "Hello, this is your GET /user response "
-#     }
+  if not auth or not auth.username or not auth.password:  
+     return make_response('could not verify', 401, {'WWW.Authentication': 'Basic realm: "login required"'})    
 
-#     return jsonify(response_body), 200
+  user = User.query.filter_by(email=auth.username).first()   
+     
+  if check_password_hash(user.password, auth.password):  
+     token = jwt.encode({'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])  
+     return jsonify({'token' : token.decode('UTF-8')}) 
 
-# this only runs if `$ python src/main.py` is executed
+  return make_response('could not verify',  401, {'WWW.Authentication': 'Basic realm: "login required"'})
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=PORT, debug=False)
