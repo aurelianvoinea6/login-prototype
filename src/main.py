@@ -6,7 +6,10 @@ from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
-from utils import APIException, generate_sitemap
+from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+import jwt
+from utils import APIException, generate_sitemap, token_required
 from admin import setup_admin
 from models import db, User
 #from models import Person
@@ -15,6 +18,7 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY']='Th1s1ss3cr3t'
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
@@ -30,14 +34,28 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
 
-    return jsonify(response_body), 200
+@app.route('/register', methods=['GET', 'POST'])
+def signup_user():  
+ data = request.get_json()  
+
+ hashed_password = generate_password_hash(data['password'], method='sha256')
+ 
+ new_user = User(email=data['email'], password=hashed_password) 
+ db.session.add(new_user)  
+ db.session.commit()    
+
+ return jsonify({'message': 'registered successfully'})
+
+# @app.route('/user', methods=['GET'])
+# def handle_hello():
+
+#     response_body = {
+#         "msg": "Hello, this is your GET /user response "
+#     }
+
+#     return jsonify(response_body), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
